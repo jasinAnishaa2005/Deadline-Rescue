@@ -362,6 +362,13 @@ export function createNotionService(notionConfig, { client } = {}) {
       throw new NotionServiceError(`Property “${field.name}” (${field.type}) can't be updated automatically.`, 422, 'schema_error');
     }
     try {
+      const page = await notion.pages.retrieve({ page_id: pageId });
+      const norm = (id) => (id ? String(id).replace(/-/g, '') : null);
+      const parent = page.parent || {};
+      const inTasksDb =
+        (parent.data_source_id && norm(parent.data_source_id) === norm(ds.id)) ||
+        (parent.database_id && ds.databaseId && norm(parent.database_id) === norm(ds.databaseId));
+      if (!inTasksDb) throw new NotionServiceError('That page is not in your assignments database.', 403, 'forbidden_page');
       await notion.pages.update({ page_id: pageId, properties: { [field.name]: value } });
     } catch (err) {
       throw toServiceError(err);

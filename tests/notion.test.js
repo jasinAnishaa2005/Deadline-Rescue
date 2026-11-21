@@ -86,7 +86,11 @@ function fakeClient() {
     },
     databases: { retrieve: vi.fn().mockResolvedValue({ id: 'db-1', parent: { type: 'page_id', page_id: 'student-os' } }) },
     pages: {
-      retrieve: vi.fn().mockResolvedValue({ properties: { Name: { type: 'title', title: [{ plain_text: 'PHIL 150' }] } } }),
+      retrieve: vi.fn().mockImplementation(async ({ page_id }) =>
+        page_id === 'course-1'
+          ? { properties: { Name: { type: 'title', title: [{ plain_text: 'PHIL 150' }] } } }
+          : { id: page_id, parent: { type: 'data_source_id', data_source_id: page_id === 'page-1' ? 'ds-1' : 'other-ds', database_id: page_id === 'page-1' ? 'db-1' : 'other-db' } },
+      ),
       update: vi.fn().mockResolvedValue({}),
       create: vi.fn().mockResolvedValue({ id: 'plan-page', url: 'https://notion.so/plan-page' }),
     },
@@ -112,6 +116,12 @@ describe('notion service (mocked official client)', () => {
     expect(client.pages.update).toHaveBeenCalledWith({ page_id: 'page-1', properties: { Status: { status: { name: 'Submitted' } } } });
     await svc.setTaskCompleted('page-1', false);
     expect(client.pages.update).toHaveBeenLastCalledWith({ page_id: 'page-1', properties: { Status: { status: { name: 'In progress' } } } });
+  });
+  it('refuses to update pages outside the assignments database', async () => {
+    const client = fakeClient();
+    const svc = createNotionService({ token: 'x', propertyOverrides: {} }, { client });
+    await expect(svc.setTaskCompleted('some-other-page', true)).rejects.toMatchObject({ status: 403 });
+    expect(client.pages.update).not.toHaveBeenCalled();
   });
   it('saves a plan as a child page of the database parent', async () => {
     const client = fakeClient();
