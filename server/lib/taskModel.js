@@ -1,10 +1,12 @@
 /**
  * Normalized task shape used across the app (both demo + Notion data):
  * { id, title, course, type, dueDate (ISO|null), completed, status, priority,
- *   estimatedHours, url, source: 'demo' | 'notion' }
+ *   estimatedHours, url, source: 'demo' | 'notion' | 'local' }
  */
 
 export const TASK_TYPES = ['exam', 'project', 'quiz', 'assignment', 'lab', 'reading', 'other'];
+export const PRIORITIES = ['high', 'medium', 'low'];
+export const MAX_EFFORT_HOURS = 200;
 
 const TYPE_PATTERNS = [
   ['exam', /exam|midterm|final|test/i],
@@ -50,3 +52,31 @@ const NOT_DONE_PATTERN = /\bnot\b|\bun-?(?:done|finished|submitted|completed?|gr
 
 /** True for status labels like "Done" or "Submitted", false for "Not done", "Incomplete", "Unsubmitted". */
 export const isDoneLabel = (label) => typeof label === 'string' && DONE_PATTERN.test(label) && !NOT_DONE_PATTERN.test(label);
+
+const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+
+/**
+ * Validates an untrusted, user-entered task (browser storage, imports, API bodies) into the
+ * normalized task shape. Returns null when the task has no title.
+ */
+export function sanitizeTask(raw, { source = 'local' } = {}) {
+  if (!raw || typeof raw !== 'object') return null;
+  const title = str(raw.title, 200);
+  if (!title) return null;
+  const due = raw.dueDate ? new Date(raw.dueDate) : null;
+  const effort = Number(raw.estimatedHours);
+  const completed = raw.completed === true;
+  return {
+    id: str(raw.id, 64) || null,
+    title,
+    course: str(raw.course, 120) || null,
+    type: TASK_TYPES.includes(raw.type) ? raw.type : normalizeType(str(raw.type, 40), title),
+    dueDate: due && !Number.isNaN(due.getTime()) ? due.toISOString() : null,
+    completed,
+    status: completed ? 'Done' : 'Not started',
+    priority: PRIORITIES.includes(raw.priority) ? raw.priority : null,
+    estimatedHours: Number.isFinite(effort) && effort > 0 ? Math.min(effort, MAX_EFFORT_HOURS) : null,
+    url: null,
+    source,
+  };
+}

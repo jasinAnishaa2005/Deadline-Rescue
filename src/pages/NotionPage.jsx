@@ -43,7 +43,7 @@ function StatusRow({ ok, pending, label, detail }) {
 }
 
 export default function NotionPage() {
-  const { status, setSource, source } = useData();
+  const { status, setSource, source, publicMode } = useData();
   const configured = status?.notion?.configured;
   const [conn, setConn] = useState({ state: 'idle' });
   const [dbs, setDbs] = useState(null);
@@ -60,6 +60,52 @@ export default function NotionPage() {
       .then((d) => setDbs(d.databases))
       .catch(() => setDbs([]));
   }, [configured]);
+
+  if (publicMode) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="Notion Integration"
+          title="Optional: sync your own Notion"
+          description="Notion sync is a personal feature. On this public site it is turned off, so no visitor can reach anyone else's workspace."
+          actions={
+            source !== 'local' && (
+              <button className="btn-primary" onClick={() => setSource('local')}>
+                Use my own assignments
+              </button>
+            )
+          }
+        />
+        <div className="grid gap-4 lg:grid-cols-5">
+          <Card className="p-5 animate-fade-up lg:col-span-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+              <ShieldCheck size={16} className="text-emerald-400" /> How your data is handled here
+            </p>
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-400">
+              <li>• Assignments you add under “My Assignments” are saved only in this browser (localStorage). They are not uploaded to or stored on our server.</li>
+              <li>• Plans are generated in your browser with the same planner engine, and you can download them as Markdown or a calendar file.</li>
+              <li>• This site never uses a shared Notion token, and it cannot read or write anyone's Notion workspace.</li>
+            </ul>
+          </Card>
+          <Card className="animate-fade-up lg:col-span-2">
+            <CardHeader title="Want live Notion sync?" subtitle="Run your own personal copy" icon={KeyRound} />
+            <ol className="space-y-4 p-5 pt-4">
+              {STEPS.map(([title, body], i) => (
+                <li key={title} className="flex gap-3">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-violet-500 text-xs font-bold text-white">{i + 1}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">{title}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-400">{body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="px-5 pb-5 text-xs text-slate-500">Personal copies run with APP_MODE=personal on your own computer. Never deploy personal mode publicly.</p>
+          </Card>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

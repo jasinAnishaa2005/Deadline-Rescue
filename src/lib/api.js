@@ -30,5 +30,8 @@ export const api = {
   resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
   plan: (source, settings) =>
     request('/api/plan', { method: 'POST', body: JSON.stringify({ source, tzOffsetMinutes: tz(), ...settings }) }),
+  /** One-off planning of browser-stored tasks (only used for optional AI help; nothing is stored). */
+  planFromTasks: (tasks, settings) =>
+    request('/api/plan', { method: 'POST', body: JSON.stringify({ source: 'client', tasks, tzOffsetMinutes: tz(), ...settings }) }),
   savePlan: (plan) => request('/api/plan/save', { method: 'POST', body: JSON.stringify({ plan }) }),
 };

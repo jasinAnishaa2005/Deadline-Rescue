@@ -4,8 +4,9 @@ import { LevelBadge } from './ui.jsx';
 import { countdown, formatDue, LEVELS, TYPE_LABELS } from '../lib/format.js';
 import { useData } from '../context/DataContext.jsx';
 
-export default function TaskRow({ task, rank, showScore = false, compact = false }) {
-  const { toggleComplete } = useData();
+export default function TaskRow({ task, rank, showScore = false, compact = false, actions, onToggle }) {
+  const { toggleComplete: toggleInSource } = useData();
+  const toggleComplete = onToggle || toggleInSource;
   const level = LEVELS[task.level] || LEVELS.low;
   return (
     <div
@@ -56,6 +57,7 @@ export default function TaskRow({ task, rank, showScore = false, compact = false
           <span className={clsx('font-mono text-[11px]', task.isOverdue ? 'text-rose-400' : 'text-slate-500')}>{countdown(task.hoursLeft)}</span>
         )}
       </div>
+      {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
     </div>
   );
 }

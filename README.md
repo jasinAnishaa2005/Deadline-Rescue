@@ -16,6 +16,7 @@ University students juggle assignments, quizzes, exams, labs and group projects 
 | **Deadline Radar** | Scores every open task 0–100 (time left, estimated effort vs. available study time, task type, priority). Overdue work is detected automatically; critical deadlines are highlighted in alert cards and on an animated radar (closer to the centre = sooner, slices = courses). Filterable ranked list. |
 | **AI Study Planner** | Generates a daily schedule of focus sessions around your available hours (hours/day, start time, session length, plan length). Breaks big assignments into concrete sub-steps (e.g. *Read the brief → Work through questions → Draft → Review*), recommends what to study first, and warns when a task can't fit before its deadline. Optional LLM layer writes task-specific steps and coaching tips. |
 | **Notion integration** | Uses the **official Notion API** (`@notionhq/client`). Auto-detects your assignments database and its properties, reads real tasks and deadlines, marks tasks done/undone in Notion, and saves the generated plan as a new Notion page (to-do blocks per session). |
+| **Public Student Mode** | Any visitor can add, edit, complete and delete their own assignments (name, course, deadline, priority, estimated hours, task type) on **My Assignments**. Data and planner preferences live only in that visitor's browser (`localStorage`), plans are generated in the browser with the same planner engine, and plans download as **Markdown** or a **calendar file (.ics)**. JSON backup export/import moves data between devices. |
 | **Demo Mode** | Realistic sample semester (overdue, imminent and future work) when no Notion credentials are configured. Demo data is badged **"Demo data"** everywhere with a banner; live data is badged **"Live Notion"**. Demo plans can't be "saved to Notion" — nothing is faked. |
 
 <p>
@@ -141,25 +142,60 @@ The planner always runs a deterministic engine so it works offline and never inv
 
 ---
 
+## Public deployment (Public Student Mode)
+
+Set `APP_MODE=public` (the default whenever `NODE_ENV=production`, e.g. `npm start` or the Dockerfile) to run Deadline Rescue as a public website:
+
+- **No shared Notion access.** `NOTION_TOKEN` is ignored (the server logs a warning if it is set) and every Notion endpoint returns `403 public_mode`, so visitors can never read or write your workspace. The Notion page explains how to run a personal copy instead.
+- **Each visitor's data stays in their browser.** Assignments and planner preferences are stored in `localStorage` (keys `deadline-rescue:tasks:v1`, `deadline-rescue:prefs:v1`), so visitors are isolated from each other and nothing is stored on the server. Clearing site data deletes it, so the **Export backup** button saves a JSON file that **Import** restores.
+- **Plans are built client-side** with the same `server/lib/urgency.js` + `server/lib/planner.js` engine and can be downloaded as Markdown or `.ics`.
+- **Shared demo data is read-only** (visitors get their own copy in the browser for ticking things off).
+- **AI is off by default.** Your `OPENAI_API_KEY` is only offered to visitors if you also set `PUBLIC_AI_ENABLED=true`. When it is on, a visitor's open tasks are sent to `POST /api/plan` (`source: "client"`, max 200 tasks, validated) for that one request and are not stored.
+- Behind a reverse proxy/load balancer, set `TRUST_PROXY=1` so rate limiting sees real client IPs.
+
+```bash
+# Docker
+docker build -t deadline-rescue .
+docker run -p 3001:3001 deadline-rescue
+
+# Or any Node 22 host (Render, Railway, Fly.io, a VPS, ...)
+npm ci && npm run build
+NODE_ENV=production APP_MODE=public npm start     # serves the built frontend + API on $PORT
+```
+
+Do **not** add your `NOTION_TOKEN` to a public host. Use `APP_MODE=personal` only on your own computer: personal mode has no login, so anyone who can reach it can read and edit your Notion tasks.
+
+| Variable | Public deploy | Personal copy |
+| --- | --- | --- |
+| `APP_MODE` | `public` | `personal` |
+| `NOTION_TOKEN` | leave unset | your integration token |
+| `OPENAI_API_KEY` / `PUBLIC_AI_ENABLED` | optional / `true` to share your key | optional |
+| `TRUST_PROXY` | `1` behind a proxy | — |
+| `VITE_APP_TIMEZONE` | greeting timezone at build time (default `Asia/Dhaka`) | same |
+
 ## Security
 
 - All credentials live in the server's environment (`.env`, git-ignored). The frontend never receives them — the browser only calls the local `/api`.
 - `GET /api/status` only reports *whether* Notion/AI are configured, never the values (covered by a test).
 - `helmet` security headers + CSP, JSON body limit, and API rate limiting (120 req/min).
 - The Notion integration can only access pages you explicitly share with it.
+- In public mode the server never loads `NOTION_TOKEN`, blocks all Notion routes, and keeps visitor assignments out of server storage (covered by `tests/public.test.js`).
+- Browser-stored and uploaded task data is re-validated (`sanitizeTask`: length limits, known types/priorities, bounded effort, no links).
 
 ## API reference
 
 | Method & path | Purpose |
 | --- | --- |
-| `GET /api/status` | Which integrations are configured |
+| `GET /api/status` | Deployment mode and which integrations are configured |
 | `GET /api/notion/connection` | Detected database + property mapping |
 | `GET /api/notion/databases` | Databases shared with the integration |
 | `GET /api/tasks?source=demo\|notion&tz=<offset>` | Tasks with urgency scores + dashboard stats |
 | `PATCH /api/tasks/:id` `{completed, source}` | Mark done / not done (writes to Notion for live data) |
-| `POST /api/plan` `{source, days, hoursPerDay, startHour, sessionMinutes, useAi, tzOffsetMinutes}` | Generate a study plan |
+| `POST /api/plan` `{source: demo\|notion\|client, tasks?, days, hoursPerDay, startHour, sessionMinutes, useAi, tzOffsetMinutes}` | Generate a study plan |
 | `POST /api/plan/save` `{plan}` | Save a Notion-sourced plan as a Notion page |
-| `POST /api/demo/reset` | Reset demo data |
+| `POST /api/demo/reset` | Reset demo data (personal mode only) |
+
+In public mode every `/api/notion/*` route, `source=notion`, plan saving and shared-demo writes return `403` with `code: "public_mode"`.
 
 ## Testing
 
@@ -184,5 +220,5 @@ npm test
 ## Roadmap
 
 - OAuth public integration (multi-user) instead of an internal token
-- Calendar export (ICS) and reminders
+- Reminders / notifications
 - Code-splitting the chart bundle
