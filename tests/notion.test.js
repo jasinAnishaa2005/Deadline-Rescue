@@ -147,3 +147,14 @@ describe('done-label detection', () => {
     for (const l of ['Not Done', 'Not Submitted', 'Incomplete', 'Unfinished', 'To Do']) expect(isDoneLabel(l)).toBe(false);
   });
 });
+
+describe('schema detection edge cases', () => {
+  it('prefers a Due Date formula over an unrelated Assigned Date', () => {
+    const s = detectSchema({ Name: { type: 'title' }, 'Assigned Date': { type: 'date' }, 'Due Date': { type: 'formula' } });
+    expect(s.due.name).toBe('Due Date');
+  });
+  it('does not use an unrelated checkbox as completion status', () => {
+    const s = detectSchema({ Name: { type: 'title' }, Due: { type: 'date' }, Flagged: { type: 'checkbox' } });
+    expect(s.status).toBeNull();
+  });
+});

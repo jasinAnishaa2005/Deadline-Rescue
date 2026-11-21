@@ -47,16 +47,15 @@ export function detectSchema(properties, overrides = {}) {
 
   const due =
     valid(overrides.due) ||
-    pick(props, ['date'], [/due|deadline/i, /date|when|submission/i]) ||
-    Object.keys(props).find((k) => props[k].type === 'date') ||
-    pick(props, ['formula'], [/due|deadline/i]);
+    pick(props, ['date', 'formula'], [/due|deadline/i]) ||
+    pick(props, ['date'], [/date|when|submission/i]) ||
+    Object.keys(props).find((k) => props[k].type === 'date');
 
   const status =
     valid(overrides.status) ||
     Object.keys(props).find((k) => props[k].type === 'status') ||
     pick(props, ['checkbox'], [/done|complete|finished|submitted|status/i]) ||
-    pick(props, ['select'], [/status|state|progress/i]) ||
-    Object.keys(props).find((k) => props[k].type === 'checkbox');
+    pick(props, ['select'], [/status|state|progress/i]);
 
   const course =
     valid(overrides.course) ||
