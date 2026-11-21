@@ -85,6 +85,8 @@ Open http://localhost:5173. Without a Notion token the app runs in **Demo Mode**
 | `npm run build` | Build the frontend into `dist/` |
 | `npm start` | Production: Express serves the API **and** `dist/` on `PORT` |
 
+The dashboard greeting uses the time in `VITE_APP_TIMEZONE` (an IANA name, default `Asia/Dhaka`): Good morning 5:00–11:59, Good afternoon 12:00–16:59, Good evening 17:00–20:59, Good night 21:00–4:59. It re-checks every minute. Vite reads this at build/dev start, so restart `npm run dev` after changing it.
+
 ---
 
 ## Connecting your Notion Student OS
@@ -94,7 +96,7 @@ Open http://localhost:5173. Without a Notion token the app runs in **Demo Mode**
 3. **Configure the server** in `.env`:
    ```bash
    NOTION_TOKEN=ntn_xxx                         # required
-   NOTION_TASKS_DATABASE_ID=<id or URL>         # optional, auto-detected otherwise
+   NOTION_ASSIGNMENTS_DATABASE_ID=<id or URL>   # optional, auto-detected otherwise
    NOTION_PLANS_PARENT_PAGE_ID=<id or URL>      # optional, where plans are saved
    ```
 4. **Restart** `npm run dev`, click **Notion** in the top bar (or *Use live Notion data* on the Notion Integration page).
@@ -120,7 +122,7 @@ If detection guesses wrong, set `NOTION_PROP_TITLE`, `NOTION_PROP_DUE`, `NOTION_
 ### What gets written to Notion
 
 - **Marking a task done** updates that page's status (to an option in the *Complete* group), checkbox or select.
-- **Save plan to Notion** creates a page *"Deadline Rescue Study Plan — YYYY-MM-DD"* under `NOTION_PLANS_PARENT_PAGE_ID` (or the page that contains your tasks database) with a summary callout, "study these first", warnings and a to-do per study session.
+- **Save plan to Notion** creates a page *"Deadline Rescue Study Plan — YYYY-MM-DD"* under `NOTION_PLANS_PARENT_PAGE_ID` (or the page that contains your tasks database, or else a page shared with the integration) with a summary callout, "study these first", warnings and a to-do per study session.
 
 Nothing else is modified.
 
@@ -175,9 +177,9 @@ npm test
 | --- | --- |
 | *Notion rejected the integration token* | Check `NOTION_TOKEN`; restart the server. |
 | *No databases are shared with your integration* | In Notion: `•••` → Connections → add the integration to your Student OS. |
-| *Could not auto-detect your assignments database* | Set `NOTION_TASKS_DATABASE_ID` (ID or URL). |
+| *Could not auto-detect your assignments database* | Set `NOTION_ASSIGNMENTS_DATABASE_ID` (ID or URL). |
 | *has no date property for deadlines* | Add a *Due Date* date property or set `NOTION_PROP_DUE`. |
-| *Could not determine where to save the plan* | Set `NOTION_PLANS_PARENT_PAGE_ID` to a page shared with the integration. |
+| *Could not find a Notion page to save the plan under* | Share a page (not only the database) with the integration, or set `NOTION_PLANS_PARENT_PAGE_ID`. |
 
 ## Roadmap
 

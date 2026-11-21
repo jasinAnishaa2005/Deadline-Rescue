@@ -153,7 +153,7 @@ export default function Planner() {
     setSaving(true);
     try {
       const res = await api.savePlan(plan);
-      setSaved(res.page);
+      setSaved({ ...res.page, plan });
       notify('Study plan saved to Notion');
     } catch (err) {
       notify(err.message, 'error');
@@ -199,7 +199,7 @@ export default function Planner() {
 
         <div className="min-w-0 space-y-4">
           {error && <ErrorPanel title="Could not generate a plan" message={error.message} />}
-          {saved && (
+          {saved?.plan === plan && (
             <Card className="flex items-center justify-between gap-3 border-emerald-500/25 p-4 animate-fade-up">
               <p className="text-sm text-emerald-200">Plan saved to your Notion workspace.</p>
               {saved.url && (

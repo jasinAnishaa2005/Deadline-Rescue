@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { AlarmClock, ArrowRight, BookOpen, CheckCircle2, Flame, Layers, ListTodo, Sparkles, TrendingUp } from 'lucide-react';
@@ -6,6 +7,7 @@ import DataGate from '../components/DataGate.jsx';
 import TaskRow from '../components/TaskRow.jsx';
 import { Card, CardHeader, EmptyState, PageHeader } from '../components/ui.jsx';
 import { formatDay, LEVELS } from '../lib/format.js';
+import { greeting } from '../lib/greeting.js';
 
 function StatCard({ label, value, hint, icon: Icon, accent, delay = 0 }) {
   return (
@@ -58,9 +60,14 @@ const tooltipStyle = {
   cursor: { fill: 'rgba(255,255,255,0.03)' },
 };
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+/** Greeting in the app timezone, re-checked every minute so it changes at the boundary hours. */
+function useGreeting() {
+  const [text, setText] = useState(() => greeting());
+  useEffect(() => {
+    const id = setInterval(() => setText(greeting()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return text;
 }
 
 export default function Dashboard() {
@@ -69,6 +76,7 @@ export default function Dashboard() {
 
 function DashboardView({ data }) {
   const { stats, tasks } = data;
+  const greetingText = useGreeting();
   const open = tasks.filter((t) => !t.completed);
   const nextUp = open.slice(0, 5);
   const levelData = ['overdue', 'critical', 'high', 'medium', 'low']
@@ -87,7 +95,7 @@ function DashboardView({ data }) {
     <>
       <PageHeader
         eyebrow="Dashboard"
-        title={greeting()}
+        title={greetingText}
         description={headline}
         actions={
           <>
