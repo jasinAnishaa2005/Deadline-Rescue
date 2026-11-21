@@ -101,6 +101,10 @@ describe('API in public mode', () => {
     const many = Array.from({ length: 201 }, (_, i) => ({ title: `T${i}` }));
     expect((await request(app).post('/api/plan').send({ source: 'client', tasks: many })).status).toBe(400);
     expect((await request(app).get('/api/tasks?source=client')).status).toBe(400);
+    const due = new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString();
+    const dupes = [{ id: 'client-2', title: 'A', dueDate: due }, { title: 'B', dueDate: due }, { id: 'client-2', title: 'C', dueDate: due }];
+    const res = await request(app).post('/api/plan').send({ source: 'client', tasks: dupes });
+    expect(res.body.breakdown.map((b) => b.title).sort()).toEqual(['A', 'B', 'C']);
   });
 });
 

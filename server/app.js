@@ -31,10 +31,16 @@ function clientTasksFrom(raw) {
   if (raw.length > MAX_CLIENT_TASKS) {
     throw new NotionServiceError(`Too many tasks (max ${MAX_CLIENT_TASKS}).`, 400, 'invalid_tasks');
   }
+  const seen = new Set();
   return raw
     .map((t) => sanitizeTask(t, { source: 'local' }))
     .filter(Boolean)
-    .map((t, i) => ({ ...t, id: t.id || `client-${i + 1}` }));
+    .map((t, i) => {
+      let id = t.id || `client-${i + 1}`;
+      while (seen.has(id)) id = `${id}~${i + 1}`;
+      seen.add(id);
+      return { ...t, id };
+    });
 }
 
 export function createApp({ config = loadConfig(), notionService, fetchImpl } = {}) {
