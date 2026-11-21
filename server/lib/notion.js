@@ -47,7 +47,8 @@ export function detectSchema(properties, overrides = {}) {
 
   const due =
     valid(overrides.due) ||
-    pick(props, ['date', 'formula'], [/due|deadline/i]) ||
+    pick(props, ['date'], [/due|deadline/i]) ||
+    pick(props, ['formula'], [/\bdue\b|deadline/i]) ||
     pick(props, ['date'], [/date|when|submission/i]) ||
     Object.keys(props).find((k) => props[k].type === 'date');
 

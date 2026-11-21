@@ -163,6 +163,10 @@ describe('schema detection edge cases', () => {
     const s = detectSchema({ Name: { type: 'title' }, 'Assigned Date': { type: 'date' }, 'Due Date': { type: 'formula' } });
     expect(s.due.name).toBe('Due Date');
   });
+  it('ignores an Overdue formula when a Due Date exists', () => {
+    const s = detectSchema({ Name: { type: 'title' }, Overdue: { type: 'formula' }, 'Due Date': { type: 'date' } });
+    expect(s.due.name).toBe('Due Date');
+  });
   it('does not use an unrelated checkbox as completion status', () => {
     const s = detectSchema({ Name: { type: 'title' }, Due: { type: 'date' }, Flagged: { type: 'checkbox' } });
     expect(s.status).toBeNull();
