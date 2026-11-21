@@ -167,6 +167,11 @@ describe('schema detection edge cases', () => {
     const s = detectSchema({ Name: { type: 'title' }, Overdue: { type: 'formula' }, 'Due Date': { type: 'date' } });
     expect(s.due.name).toBe('Due Date');
   });
+  it('finds compact deadline names and prefers the effective deadline', () => {
+    expect(detectSchema({ Name: { type: 'title' }, DueDate: { type: 'formula' }, Created: { type: 'date' } }).due.name).toBe('DueDate');
+    expect(detectSchema({ Name: { type: 'title' }, due_date: { type: 'formula' } }).due.name).toBe('due_date');
+    expect(detectSchema({ Name: { type: 'title' }, 'Original Due Date': { type: 'date' }, 'Due Date': { type: 'formula' } }).due.name).toBe('Due Date');
+  });
   it('does not use an unrelated checkbox as completion status', () => {
     const s = detectSchema({ Name: { type: 'title' }, Due: { type: 'date' }, Flagged: { type: 'checkbox' } });
     expect(s.status).toBeNull();

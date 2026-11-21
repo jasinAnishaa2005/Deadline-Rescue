@@ -39,6 +39,21 @@ const pick = (props, types, regexes) => {
   return undefined;
 };
 
+const words = (name) => name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z]+/).filter(Boolean);
+/** Best date/formula property named like a deadline; "Original/Assigned/Overdue" names lose to plain "Due Date". */
+function pickDueDate(props) {
+  let best;
+  let bestScore = 0;
+  for (const [name, p] of Object.entries(props)) {
+    if (p.type !== 'date' && p.type !== 'formula') continue;
+    const w = words(name);
+    if (!w.includes('due') && !w.includes('deadline')) continue;
+    const score = 10 - (w.some((x) => /^(original|initial|old|previous|assigned|start|planned)$/.test(x)) ? 5 : 0) + (p.type === 'date' ? 1 : 0);
+    if (score > bestScore) [best, bestScore] = [name, score];
+  }
+  return best;
+}
+
 /** Auto-detects which Notion properties hold title/due date/status/etc. */
 export function detectSchema(properties, overrides = {}) {
   const props = properties || {};
@@ -47,8 +62,7 @@ export function detectSchema(properties, overrides = {}) {
 
   const due =
     valid(overrides.due) ||
-    pick(props, ['date'], [/due|deadline/i]) ||
-    pick(props, ['formula'], [/\bdue\b|deadline/i]) ||
+    pickDueDate(props) ||
     pick(props, ['date'], [/date|when|submission/i]) ||
     Object.keys(props).find((k) => props[k].type === 'date');
 
