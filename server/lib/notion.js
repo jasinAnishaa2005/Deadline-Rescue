@@ -48,8 +48,12 @@ function pickDueDate(props) {
     if (p.type !== 'date' && p.type !== 'formula') continue;
     const w = words(name);
     if (!w.some((x) => /^(due|deadlines?)$/.test(x))) continue;
-    // Countdown formulas ("Days Until Due") return numbers, not dates.
-    if (w.some((x) => /^(days?|hours?|until|till|left|remaining|count|countdown)$/.test(x))) continue;
+    // Formula result types aren't in the schema: only trust formulas named like a date
+    // ("Due Date", "Deadline"), not countdowns ("Days Until Due") or flags ("Deadlines Met").
+    if (p.type === 'formula') {
+      if (!/^(due|date|deadlines?)$/.test(w[w.length - 1])) continue;
+      if (w.some((x) => /^(days?|hours?|until|till|left|remaining|count|countdown)$/.test(x))) continue;
+    }
     const score = 10 - (w.some((x) => /^(original|initial|old|previous|assigned|start|planned)$/.test(x)) ? 5 : 0) + (p.type === 'date' ? 1 : 0);
     if (score > bestScore) [best, bestScore] = [name, score];
   }

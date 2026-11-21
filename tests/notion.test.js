@@ -176,6 +176,10 @@ describe('schema detection edge cases', () => {
     expect(detectSchema({ Name: { type: 'title' }, 'Days Until Due': { type: 'formula' }, 'Original Due Date': { type: 'date' } }).due.name).toBe('Original Due Date');
     expect(detectSchema({ Name: { type: 'title' }, 'Assigned Date': { type: 'date' }, Deadlines: { type: 'formula' } }).due.name).toBe('Deadlines');
   });
+  it('trusts date fields over flag-like formulas', () => {
+    expect(detectSchema({ Name: { type: 'title' }, 'Due Day': { type: 'date' }, 'Original Due Date': { type: 'date' } }).due.name).toBe('Due Day');
+    expect(detectSchema({ Name: { type: 'title' }, 'Deadlines Met': { type: 'formula' }, 'Hand-in Date': { type: 'date' } }).due.name).toBe('Hand-in Date');
+  });
   it('does not use an unrelated checkbox as completion status', () => {
     const s = detectSchema({ Name: { type: 'title' }, Due: { type: 'date' }, Flagged: { type: 'checkbox' } });
     expect(s.status).toBeNull();
