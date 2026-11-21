@@ -121,6 +121,8 @@ describe('sanitizeTask', () => {
     expect(t).toMatchObject({ title: 'Lab 2', type: 'lab', priority: null, estimatedHours: 200, dueDate: '2026-12-01T10:00:00.000Z', completed: false, source: 'local', url: null });
     expect(t.course).toHaveLength(120);
     expect(sanitizeTask({ title: 'Midterm prep', type: 'Exam!' }).type).toBe('exam');
+    expect(sanitizeTask({ title: 'Reopened', status: 'In progress' }).status).toBe('In progress');
+    expect(sanitizeTask({ title: 'Odd', status: 'Hacked' }).status).toBe('Not started');
     expect(sanitizeTask({ title: '' })).toBeNull();
     expect(sanitizeTask(null)).toBeNull();
   });

@@ -73,7 +73,7 @@ export function sanitizeTask(raw, { source = 'local' } = {}) {
     type: TASK_TYPES.includes(raw.type) ? raw.type : normalizeType(str(raw.type, 40), title),
     dueDate: due && !Number.isNaN(due.getTime()) ? due.toISOString() : null,
     completed,
-    status: completed ? 'Done' : 'Not started',
+    status: completed ? 'Done' : raw.status === 'In progress' ? 'In progress' : 'Not started',
     priority: PRIORITIES.includes(raw.priority) ? raw.priority : null,
     estimatedHours: Number.isFinite(effort) && effort > 0 ? Math.min(effort, MAX_EFFORT_HOURS) : null,
     url: null,
