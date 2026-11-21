@@ -4,12 +4,14 @@ import Dashboard from './pages/Dashboard.jsx';
 import RadarPage from './pages/Radar.jsx';
 import Planner from './pages/Planner.jsx';
 import NotionPage from './pages/NotionPage.jsx';
+import Assignments from './pages/Assignments.jsx';
 
 export default function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/assignments" element={<Assignments />} />
         <Route path="/radar" element={<RadarPage />} />
         <Route path="/planner" element={<Planner />} />
         <Route path="/notion" element={<NotionPage />} />

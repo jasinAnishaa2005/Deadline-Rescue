@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { AlertTriangle, Database, FlaskConical, Loader2 } from 'lucide-react';
+import { AlertTriangle, Database, FlaskConical, Laptop, Loader2 } from 'lucide-react';
 import { LEVELS } from '../lib/format.js';
 
 export function Card({ className, children, ...props }) {
@@ -39,18 +39,19 @@ export function LevelBadge({ level, className }) {
   );
 }
 
+const SOURCE_BADGES = {
+  notion: { label: 'Live Notion', icon: Database, tone: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/30' },
+  local: { label: 'My data · this browser', icon: Laptop, tone: 'bg-sky-400/10 text-sky-300 ring-sky-400/30' },
+  demo: { label: 'Demo data', icon: FlaskConical, tone: 'bg-amber-400/10 text-amber-300 ring-amber-400/30' },
+};
+
 export function SourceBadge({ source, className }) {
-  const demo = source !== 'notion';
+  const badge = SOURCE_BADGES[source] || SOURCE_BADGES.demo;
+  const Icon = badge.icon;
   return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ring-1',
-        demo ? 'bg-amber-400/10 text-amber-300 ring-amber-400/30' : 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/30',
-        className,
-      )}
-    >
-      {demo ? <FlaskConical size={12} /> : <Database size={12} />}
-      {demo ? 'Demo data' : 'Live Notion'}
+    <span className={clsx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ring-1', badge.tone, className)}>
+      <Icon size={12} />
+      {badge.label}
     </span>
   );
 }

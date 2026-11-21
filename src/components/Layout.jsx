@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
-import { CalendarClock, CheckCircle2, LayoutDashboard, Menu, Radar, RefreshCw, Sparkles, X, XCircle, Plug, FlaskConical } from 'lucide-react';
+import { CalendarClock, CheckCircle2, ClipboardList, LayoutDashboard, Lock, Menu, Radar, RefreshCw, Sparkles, X, XCircle, Plug, FlaskConical } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
 import { SourceBadge } from './ui.jsx';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/assignments', label: 'My Assignments', icon: ClipboardList },
   { to: '/radar', label: 'Deadline Radar', icon: Radar },
   { to: '/planner', label: 'AI Study Planner', icon: Sparkles },
   { to: '/notion', label: 'Notion Integration', icon: Plug },
@@ -27,14 +28,17 @@ function Logo() {
 }
 
 function SourceSwitch() {
-  const { source, setSource, status } = useData();
+  const { source, setSource, status, publicMode } = useData();
   const notionReady = status?.notion?.configured;
+  const options = [
+    { id: 'local', label: 'My Tasks' },
+    // Public sites never offer Notion: the server's integration belongs to the site owner.
+    ...(publicMode ? [] : [{ id: 'notion', label: 'Notion', disabled: !notionReady }]),
+    { id: 'demo', label: 'Demo' },
+  ];
   return (
     <div className="flex rounded-xl border border-white/10 bg-ink-850 p-1 text-xs font-semibold" role="tablist" aria-label="Data source">
-      {[
-        { id: 'notion', label: 'Notion', disabled: !notionReady },
-        { id: 'demo', label: 'Demo' },
-      ].map((opt) => (
+      {options.map((opt) => (
         <button
           key={opt.id}
           role="tab"
@@ -43,7 +47,7 @@ function SourceSwitch() {
           title={opt.disabled ? 'Add NOTION_TOKEN to the server .env to enable live Notion data' : undefined}
           onClick={() => setSource(opt.id)}
           className={clsx(
-            'rounded-lg px-3 py-1.5 transition',
+            'whitespace-nowrap rounded-lg px-2.5 py-1.5 transition sm:px-3',
             source === opt.id ? 'bg-white/10 text-white shadow' : 'text-slate-400 hover:text-slate-200',
             opt.disabled && 'cursor-not-allowed opacity-40 hover:text-slate-400',
           )}
@@ -71,7 +75,7 @@ function Toast() {
 
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false);
-  const { source, refresh, loading, data, isDemo, status } = useData();
+  const { source, refresh, loading, data, isDemo, isLocal, status, publicMode } = useData();
   const location = useLocation();
 
   const nav = (
@@ -160,8 +164,16 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-2 border-t border-amber-400/10 bg-amber-400/[0.06] px-4 py-2 text-xs text-amber-200 sm:px-6 lg:px-8">
               <FlaskConical size={14} className="shrink-0" />
               <span>
-                <strong>Demo Mode:</strong> you are viewing realistic sample data, not your Notion workspace.
-                {status?.notion?.configured ? ' Switch to “Notion” for live data.' : ' Connect Notion on the Integration page to use your real tasks.'}
+                <strong>Demo Mode:</strong> you are viewing realistic sample data{publicMode ? '' : ', not your Notion workspace'}.
+                {status?.notion?.configured ? ' Switch to “Notion” for live data.' : ' Switch to “My Tasks” to plan your own assignments.'}
+              </span>
+            </div>
+          )}
+          {isLocal && (
+            <div className="flex items-center gap-2 border-t border-sky-400/10 bg-sky-400/[0.05] px-4 py-2 text-xs text-sky-200 sm:px-6 lg:px-8">
+              <Lock size={14} className="shrink-0" />
+              <span>
+                <strong>Private to this browser:</strong> your assignments and plans are stored only on this device and never sent to anyone else.
               </span>
             </div>
           )}

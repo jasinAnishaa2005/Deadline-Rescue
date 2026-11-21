@@ -10,12 +10,44 @@ export function parseNotionId(value) {
   return match ? match[0] : v;
 }
 
+/**
+ * "public": anyone on the internet can use the app. The server never touches the owner's Notion
+ * workspace and visitors keep their own assignments in their browser.
+ * "personal": single-user mode that may use the server's NOTION_TOKEN.
+ * Defaults to public in production so a deployment can't expose Notion data by accident.
+ */
+export function resolveMode(env = process.env) {
+  const mode = clean(env.APP_MODE)?.toLowerCase();
+  if (mode === 'personal') return 'personal';
+  if (mode === 'public') return 'public';
+  return env.NODE_ENV === 'production' ? 'public' : 'personal';
+}
+
+function parseTrustProxy(value) {
+  const v = clean(value);
+  if (!v) return undefined;
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  return /^\d+$/.test(v) ? Number(v) : v;
+}
+
 export function loadConfig(env = process.env) {
+  const mode = resolveMode(env);
+  const publicMode = mode === 'public';
+  const token = clean(env.NOTION_TOKEN);
+  const aiKey = clean(env.OPENAI_API_KEY);
+  // The owner's AI key is only offered to anonymous visitors when explicitly allowed.
+  const aiAllowed = !publicMode || clean(env.PUBLIC_AI_ENABLED)?.toLowerCase() === 'true';
   return {
     port: Number(env.PORT) || 3001,
     isProduction: env.NODE_ENV === 'production',
+    mode,
+    publicMode,
+    trustProxy: parseTrustProxy(env.TRUST_PROXY),
+    ignoredNotionToken: publicMode && Boolean(token),
     notion: {
-      token: clean(env.NOTION_TOKEN),
+      // Never loaded in public mode, so no request can reach the owner's workspace.
+      token: publicMode ? undefined : token,
       tasksDatabaseId: parseNotionId(env.NOTION_ASSIGNMENTS_DATABASE_ID || env.NOTION_TASKS_DATABASE_ID),
       plansParentPageId: parseNotionId(env.NOTION_PLANS_PARENT_PAGE_ID),
       propertyOverrides: {
@@ -29,7 +61,7 @@ export function loadConfig(env = process.env) {
       },
     },
     ai: {
-      apiKey: clean(env.OPENAI_API_KEY),
+      apiKey: aiAllowed ? aiKey : undefined,
       model: clean(env.OPENAI_MODEL) || 'gpt-4o-mini',
       baseUrl: (clean(env.OPENAI_BASE_URL) || 'https://api.openai.com/v1').replace(/\/$/, ''),
     },

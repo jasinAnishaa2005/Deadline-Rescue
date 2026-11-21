@@ -16,6 +16,9 @@ export default function DataGate({ children }) {
             <Link className="btn-ghost" to="/notion">
               Check Notion setup
             </Link>
+            <button className="btn-ghost" onClick={() => setSource('local')}>
+              Use my own assignments
+            </button>
             <button className="btn-ghost" onClick={() => setSource('demo')}>
               Explore with demo data
             </button>
@@ -24,6 +27,6 @@ export default function DataGate({ children }) {
       </ErrorPanel>
     );
   }
-  if (!data) return <Spinner label={loading ? (source === 'notion' ? 'Syncing with Notion…' : 'Loading…') : 'Preparing…'} />;
+  if (!data) return <Spinner label={loading && source === 'notion' ? 'Syncing with Notion…' : 'Loading…'} />;
   return children(data);
 }

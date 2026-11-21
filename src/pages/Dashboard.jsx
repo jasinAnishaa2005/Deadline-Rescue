@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import { AlarmClock, ArrowRight, BookOpen, CheckCircle2, Flame, Layers, ListTodo, Sparkles, TrendingUp } from 'lucide-react';
+import { AlarmClock, ArrowRight, BookOpen, CheckCircle2, Flame, Layers, ListTodo, Plus, Sparkles, TrendingUp } from 'lucide-react';
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import DataGate from '../components/DataGate.jsx';
 import TaskRow from '../components/TaskRow.jsx';
 import { Card, CardHeader, EmptyState, PageHeader } from '../components/ui.jsx';
 import { formatDay, LEVELS } from '../lib/format.js';
 import { greeting } from '../lib/greeting.js';
+import { useData } from '../context/DataContext.jsx';
 
 function StatCard({ label, value, hint, icon: Icon, accent, delay = 0 }) {
   return (
@@ -77,6 +78,7 @@ export default function Dashboard() {
 function DashboardView({ data }) {
   const { stats, tasks } = data;
   const greetingText = useGreeting();
+  const { source } = useData();
   const open = tasks.filter((t) => !t.completed);
   const nextUp = open.slice(0, 5);
   const levelData = ['overdue', 'critical', 'high', 'medium', 'low']
@@ -86,7 +88,9 @@ function DashboardView({ data }) {
 
   const headline =
     stats.total === 0
-      ? 'No tasks yet — add assignments to your Notion database to get started.'
+      ? source === 'local'
+        ? 'No assignments yet. Add your first one to get a personalized study plan.'
+        : 'No tasks yet — add assignments to your Notion database to get started.'
       : stats.overdue + stats.critical === 0
         ? `You're on track. ${stats.upcoming} deadline${stats.upcoming === 1 ? '' : 's'} in the next 7 days.`
         : `${stats.overdue} overdue and ${stats.critical} critical — let's get you rescued.`;
@@ -99,6 +103,11 @@ function DashboardView({ data }) {
         description={headline}
         actions={
           <>
+            {source === 'local' && (
+              <Link to="/assignments" className="btn-ghost">
+                <Plus size={16} /> Add assignment
+              </Link>
+            )}
             <Link to="/radar" className="btn-ghost">
               Deadline Radar
             </Link>

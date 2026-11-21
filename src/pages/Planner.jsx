@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, Bot, CalendarDays, ChevronDown, Clock, Cpu, ExternalLink, Lightbulb, ListChecks, Loader2, Save, Sparkles, Target, Wand2 } from 'lucide-react';
+import { AlertTriangle, Bot, CalendarDays, ChevronDown, Clock, Cpu, Download, ExternalLink, FileText, Lightbulb, ListChecks, Loader2, Save, Sparkles, Target, Wand2 } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
 import { api } from '../lib/api.js';
 import { Card, CardHeader, EmptyState, ErrorPanel, LevelBadge, PageHeader } from '../components/ui.jsx';
 import { formatDay, formatDue, hours, LEVELS, relativeDayLabel, TYPE_LABELS } from '../lib/format.js';
+import { buildPlan } from '../lib/engine.js';
+import { downloadFile, planFileName, planToIcs, planToMarkdown } from '../lib/exportPlan.js';
+import { loadPrefs, savePrefs } from '../lib/localStore.js';
 
 const DEFAULTS = { hoursPerDay: 5, days: 7, startHour: 9, sessionMinutes: 50, useAi: true };
+
+function initialSettings() {
+  const saved = loadPrefs().planner || {};
+  const out = { ...DEFAULTS };
+  for (const k of Object.keys(DEFAULTS)) if (typeof saved[k] === typeof DEFAULTS[k]) out[k] = saved[k];
+  return out;
+}
 
 function Field({ label, children, hint }) {
   return (
@@ -55,7 +65,10 @@ function Settings({ settings, setSettings, onGenerate, loading, aiConfigured }) 
         {aiConfigured && (
           <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5 text-sm text-slate-300">
             <input type="checkbox" checked={settings.useAi} onChange={set('useAi')} className="h-4 w-4 accent-rose-500" />
-            Use LLM for task breakdown & tips
+            <span>
+              Use LLM for task breakdown & tips
+              <span className="block text-[11px] text-slate-500">Sends your open tasks to the AI provider for this plan only. Nothing is stored.</span>
+            </span>
           </label>
         )}
         <button className="btn-primary w-full py-3 sm:col-span-2 lg:col-span-1" onClick={onGenerate} disabled={loading}>
@@ -75,7 +88,7 @@ function SessionItem({ s }) {
         <span className="font-mono text-xs text-slate-300">{s.start}</span>
         <span className="font-mono text-[10px] text-slate-600">{s.end}</span>
       </div>
-      <div className="relative flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:border-white/[0.12] hover:bg-white/[0.04]">
+      <div className="relative min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:border-white/[0.12] hover:bg-white/[0.04]">
         <span className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full" style={{ background: color }} />
         <div className="flex items-start justify-between gap-2 pl-2">
           <div className="min-w-0">
@@ -126,20 +139,36 @@ function Breakdown({ item }) {
 }
 
 export default function Planner() {
-  const { source, isDemo, plan, setPlan, status, notify } = useData();
-  const [settings, setSettings] = useState(DEFAULTS);
+  const { source, isDemo, plan, setPlan, status, notify, clientTasks, publicMode } = useData();
+  const [settings, setSettings] = useState(initialSettings);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(null);
   const [activeDay, setActiveDay] = useState(0);
 
+  useEffect(() => {
+    savePrefs({ ...loadPrefs(), planner: settings });
+  }, [settings]);
+
+  // Browser-stored tasks are planned in the browser; they only go to the server when optional AI help is on.
+  const planClientTasks = async () => {
+    if (status?.ai?.configured && settings.useAi) {
+      try {
+        return { ...(await api.planFromTasks(clientTasks, settings)), source };
+      } catch {
+        return { ...buildPlan(clientTasks, source, settings), notice: 'AI enhancement unavailable — used the built-in planner instead.' };
+      }
+    }
+    return buildPlan(clientTasks, source, settings);
+  };
+
   const generate = async () => {
     setLoading(true);
     setError(null);
     setSaved(null);
     try {
-      const result = await api.plan(source, settings);
+      const result = source === 'notion' ? await api.plan(source, settings) : await planClientTasks();
       setPlan(result);
       setActiveDay(Math.max(0, result.days.findIndex((d) => d.sessions.length)));
     } catch (err) {
@@ -163,6 +192,12 @@ export default function Planner() {
   };
 
   const day = plan?.days[activeDay];
+  const canSaveToNotion = !publicMode && status?.notion?.configured;
+  const exportPlan = (kind) => {
+    if (kind === 'md') downloadFile(planFileName(plan, 'md'), planToMarkdown(plan), 'text/markdown;charset=utf-8');
+    else downloadFile(planFileName(plan, 'ics'), planToIcs(plan), 'text/calendar;charset=utf-8');
+    notify(kind === 'md' ? 'Plan downloaded as Markdown' : 'Calendar file downloaded — open it to add sessions to your calendar');
+  };
 
   return (
     <>
@@ -173,10 +208,25 @@ export default function Planner() {
         actions={
           plan && (
             <div className="flex flex-col items-end gap-1">
-              <button className="btn-primary" onClick={save} disabled={saving || isDemo || plan.source !== source} title={isDemo ? 'Switch to live Notion data to save plans' : undefined}>
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save plan to Notion
-              </button>
-              {isDemo && <span className="text-[11px] text-amber-300/80">Demo plans can't be saved — connect Notion first.</span>}
+              <div className="flex flex-wrap justify-end gap-2">
+                <button className="btn-ghost" onClick={() => exportPlan('md')} title="Download as a Markdown document">
+                  <FileText size={16} /> Download
+                </button>
+                <button className="btn-ghost" onClick={() => exportPlan('ics')} title="Download a calendar file (.ics) for Google, Apple or Outlook Calendar">
+                  <Download size={16} /> Add to calendar
+                </button>
+                {canSaveToNotion && (
+                  <button
+                    className="btn-primary"
+                    onClick={save}
+                    disabled={saving || source !== 'notion' || plan.source !== source}
+                    title={source !== 'notion' ? 'Switch to live Notion data to save plans' : undefined}
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save plan to Notion
+                  </button>
+                )}
+              </div>
+              {canSaveToNotion && isDemo && <span className="text-[11px] text-amber-300/80">Demo plans can't be saved to Notion — download them instead.</span>}
             </div>
           )
         }
@@ -192,7 +242,9 @@ export default function Planner() {
             <p className="mt-1.5 leading-relaxed">
               {status?.ai?.configured
                 ? `LLM-assisted (${status.ai.model}) for task breakdowns and coaching tips; scheduling stays deterministic. Falls back to the built-in engine on errors.`
-                : 'Built-in rule-based engine (urgency scoring + earliest-deadline-first scheduling). Add OPENAI_API_KEY on the server for LLM-written breakdowns and tips.'}
+                : publicMode
+                  ? 'Built-in rule-based engine (urgency scoring + earliest-deadline-first scheduling). Plans for your own assignments are generated right here in your browser.'
+                  : 'Built-in rule-based engine (urgency scoring + earliest-deadline-first scheduling). Add OPENAI_API_KEY on the server for LLM-written breakdowns and tips.'}
             </p>
           </Card>
         </div>
