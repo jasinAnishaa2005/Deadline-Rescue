@@ -154,7 +154,7 @@ describe('done-label detection', () => {
   it('does not treat negated labels as complete', async () => {
     const { isDoneLabel } = await import('../server/lib/taskModel.js');
     for (const l of ['Done', 'Submitted', 'Completed', 'Turned in', 'Unit 1 Complete']) expect(isDoneLabel(l)).toBe(true);
-    for (const l of ['Not Done', 'Not Submitted', 'Incomplete', 'Unfinished', 'To Do']) expect(isDoneLabel(l)).toBe(false);
+    for (const l of ['Not Done', 'Not Submitted', 'Incomplete', 'Unfinished', 'To Do', 'Unclosed', 'Un-submitted']) expect(isDoneLabel(l)).toBe(false);
   });
 });
 
