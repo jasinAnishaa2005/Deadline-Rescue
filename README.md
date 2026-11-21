@@ -163,6 +163,17 @@ npm ci && npm run build
 NODE_ENV=production APP_MODE=public npm start     # serves the built frontend + API on $PORT
 ```
 
+### Deploy to Render (free tier)
+
+`render.yaml` is a Render Blueprint that builds the `Dockerfile` from `main` as a free web service in public mode.
+
+1. In the Render dashboard, choose **New → Blueprint** and connect this GitHub repository.
+2. Render reads `render.yaml` and shows one web service, `deadline-rescue`, with these environment variables: `NODE_ENV=production`, `APP_MODE=public`, `PUBLIC_AI_ENABLED=false`, `TRUST_PROXY=1`, `PORT=3001`. Do not add any others.
+3. Click **Apply**. Render builds the image and serves it at `https://<service-name>.onrender.com` over HTTPS, with health checks on `/api/health`. Pushes to `main` redeploy automatically.
+4. Check `https://<your-url>/api/status`: it must show `"mode":"public"` and `"notion":{"configured":false,...}`. `https://<your-url>/api/notion/connection` must return 403.
+
+No API URL setting is needed: the same service serves the site and `/api`, and the frontend calls its own origin. Free services sleep after about 15 idle minutes, so the first visit after that takes about 30–60 seconds.
+
 Do **not** add your `NOTION_TOKEN` to a public host. Use `APP_MODE=personal` only on your own computer: personal mode has no login, so anyone who can reach it can read and edit your Notion tasks.
 
 | Variable | Public deploy | Personal copy |

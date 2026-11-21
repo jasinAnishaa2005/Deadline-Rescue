@@ -1,0 +1,25 @@
+# Render Blueprint for the public Deadline Rescue site (Public Student Mode).
+# Never add NOTION_TOKEN or OPENAI_API_KEY here or in the Render dashboard.
+services:
+  - type: web
+    name: deadline-rescue
+    runtime: docker
+    repo: https://github.com/jasinAnishaa2005/Deadline-Rescue
+    branch: main
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_MODE
+        value: public
+      - key: PUBLIC_AI_ENABLED
+        value: "false"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PORT
+        value: "3001"
