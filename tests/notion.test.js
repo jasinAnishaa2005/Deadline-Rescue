@@ -140,6 +140,13 @@ describe('notion service (mocked official client)', () => {
     client.search.mockResolvedValue({ results: [{ id: 'row', parent: { type: 'data_source_id' } }, { id: 'sub', parent: { type: 'page_id' } }, { id: 'root', parent: { type: 'workspace' } }] });
     await createNotionService({ token: 'x', tasksDatabaseId: 'ds-1', propertyOverrides: {} }, { client }).savePlan(plan);
     expect(client.pages.create.mock.calls[0][0].parent).toEqual({ page_id: 'root' });
+    client.pages.create.mockClear();
+    client.search
+      .mockResolvedValueOnce({ results: [{ id: 'row', parent: { type: 'data_source_id' } }], has_more: true, next_cursor: 'c2' })
+      .mockResolvedValueOnce({ results: [{ id: 'later', parent: { type: 'page_id' } }], has_more: false });
+    await createNotionService({ token: 'x', tasksDatabaseId: 'ds-1', propertyOverrides: {} }, { client }).savePlan(plan);
+    expect(client.search).toHaveBeenLastCalledWith(expect.objectContaining({ start_cursor: 'c2' }));
+    expect(client.pages.create.mock.calls[0][0].parent).toEqual({ page_id: 'later' });
     client.search.mockResolvedValue({ results: [{ id: 'row', parent: { type: 'data_source_id' } }] });
     await expect(createNotionService({ token: 'x', tasksDatabaseId: 'ds-1', propertyOverrides: {} }, { client }).savePlan(plan)).rejects.toMatchObject({ code: 'no_parent' });
   });

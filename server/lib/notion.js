@@ -409,10 +409,20 @@ export function createNotionService(notionConfig, { client } = {}) {
     }
     // Top-level databases have no parent page: fall back to a standalone page shared with the integration.
     try {
-      const res = await notion.search({ filter: { property: 'object', value: 'page' }, page_size: 50 });
-      const standalone = (res.results || []).filter((p) => !p.archived && !p.in_trash && ['workspace', 'page_id'].includes(p.parent?.type));
-      const page = standalone.find((p) => p.parent.type === 'workspace') || standalone[0];
-      if (page) return page.id;
+      // Shared databases expose every row to search, so page past them (bounded) to find a standalone page.
+      let cursor;
+      let fallback;
+      for (let i = 0; i < 20; i++) {
+        const res = await notion.search({ filter: { property: 'object', value: 'page' }, page_size: 100, start_cursor: cursor });
+        for (const p of res.results || []) {
+          if (p.archived || p.in_trash) continue;
+          if (p.parent?.type === 'workspace') return p.id;
+          if (p.parent?.type === 'page_id') fallback ??= p.id;
+        }
+        if (!res.has_more || !res.next_cursor) break;
+        cursor = res.next_cursor;
+      }
+      if (fallback) return fallback;
     } catch (err) {
       throw toServiceError(err);
     }
