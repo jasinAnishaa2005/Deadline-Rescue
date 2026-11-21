@@ -88,7 +88,7 @@ function SessionItem({ s }) {
         <span className="font-mono text-xs text-slate-300">{s.start}</span>
         <span className="font-mono text-[10px] text-slate-600">{s.end}</span>
       </div>
-      <div className="relative flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:border-white/[0.12] hover:bg-white/[0.04]">
+      <div className="relative min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 transition hover:border-white/[0.12] hover:bg-white/[0.04]">
         <span className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full" style={{ background: color }} />
         <div className="flex items-start justify-between gap-2 pl-2">
           <div className="min-w-0">
