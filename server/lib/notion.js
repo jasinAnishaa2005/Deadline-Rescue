@@ -1,7 +1,7 @@
 import notionPkg from '@notionhq/client';
 
 const { Client, APIResponseError } = notionPkg;
-import { DONE_PATTERN, normalizePriority, normalizeType } from './taskModel.js';
+import { isDoneLabel, normalizePriority, normalizeType } from './taskModel.js';
 
 export class NotionServiceError extends Error {
   constructor(message, status = 502, code = 'notion_error') {
@@ -135,7 +135,7 @@ export function isCompleteStatus(schemaProps, statusField, value) {
     const group = option && def.status.groups.find((g) => g.option_ids?.includes(option.id));
     if (group) return /complete|done/i.test(group.name);
   }
-  return DONE_PATTERN.test(value);
+  return isDoneLabel(value);
 }
 
 /** Maps a Notion page to the normalized task model. */
@@ -355,8 +355,8 @@ export function createNotionService(notionConfig, { client } = {}) {
         return g ? options.find((o) => g.option_ids.includes(o.id)) : undefined;
       };
       const option = completed
-        ? inGroup(/complete|done/i) || options.find((o) => DONE_PATTERN.test(o.name))
-        : inGroup(/progress/i) || inGroup(/to-?do|not started/i) || options.find((o) => !DONE_PATTERN.test(o.name));
+        ? inGroup(/complete|done/i) || options.find((o) => isDoneLabel(o.name))
+        : inGroup(/progress/i) || inGroup(/to-?do|not started/i) || options.find((o) => !isDoneLabel(o.name));
       if (!option) throw new NotionServiceError(`No suitable “${field.name}” option to set.`, 422, 'schema_error');
       value = { [field.type]: { name: option.name } };
     } else {
