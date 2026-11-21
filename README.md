@@ -85,6 +85,8 @@ Open http://localhost:5173. Without a Notion token the app runs in **Demo Mode**
 | `npm run build` | Build the frontend into `dist/` |
 | `npm start` | Production: Express serves the API **and** `dist/` on `PORT` |
 
+The dashboard greeting uses the time in `VITE_APP_TIMEZONE` (an IANA name, default `Asia/Dhaka`): Good morning 5:00–11:59, Good afternoon 12:00–16:59, Good evening 17:00–20:59, Good night 21:00–4:59. It re-checks every minute. Vite reads this at build/dev start, so restart `npm run dev` after changing it.
+
 ---
 
 ## Connecting your Notion Student OS
