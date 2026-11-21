@@ -47,7 +47,7 @@ function AssignmentForm({ editing, onSubmit, onCancel }) {
   return (
     <form onSubmit={submit} className="grid gap-4 p-5 pt-4 sm:grid-cols-2" aria-label={editing ? 'Edit assignment' : 'Add assignment'}>
       <Field label="Assignment name" className="sm:col-span-2">
-        <input className="input" value={form.title} onChange={set('title')} placeholder="e.g. DSA Quiz 3" maxLength={200} required autoFocus={Boolean(editing)} />
+        <input className="input" value={form.title} onChange={set('title')} placeholder="e.g. Calculus Midterm" maxLength={200} required autoFocus={Boolean(editing)} />
       </Field>
       <Field label="Course">
         <input className="input" value={form.course} onChange={set('course')} placeholder="e.g. Data Structures" maxLength={120} />
