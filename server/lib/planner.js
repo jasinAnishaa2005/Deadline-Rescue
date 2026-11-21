@@ -178,9 +178,12 @@ export function generatePlan(analyzedTasks, options = {}) {
       // Minutes this task may use now: remaining capacity, and never past its deadline.
       const limitFor = (t) =>
         !t.isOverdue && t.dueDate ? Math.min(capacity, Math.floor((new Date(t.dueDate).getTime() - dayStartAbs) / MIN)) : capacity;
-      // A chunk fits if it fits whole, or at least 25 minutes are free to split it.
+      // Prefer a chunk that fits whole or leaves 25+ minutes to split; otherwise any 15+ minute slot beats none.
       const fits = (t) => limitFor(t) >= Math.min(queues.get(t.id)[0].minutes, 25);
-      const task = pool.sort(byDeadline).find(fits) || candidates.sort(byDeadline).find(fits);
+      const usable = (t) => limitFor(t) >= 15;
+      pool.sort(byDeadline);
+      candidates.sort(byDeadline);
+      const task = pool.find(fits) || candidates.find(fits) || pool.find(usable) || candidates.find(usable);
       if (!task) break;
       const queue = queues.get(task.id);
       const chunk = queue[0];

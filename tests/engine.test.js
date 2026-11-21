@@ -138,4 +138,11 @@ describe('planner limits (review fixes)', () => {
     const plan = generatePlan(analyzed, { now: NOW, days: 1, hoursPerDay: 70 / 60, startHour: 12, sessionMinutes: 50, breakMinutes: 0 });
     expect(plan.days[0].sessions.some((s) => s.taskId === 'small')).toBe(true);
   });
+  it('splits a task to use a short slot before its deadline', () => {
+    const analyzed = analyzeTasks([task({ id: 'soon', estimatedHours: 0.5, dueDate: inHours(3 + 20 / 60) })], NOW);
+    const plan = generatePlan(analyzed, { now: NOW, days: 1, hoursPerDay: 4, startHour: 12, sessionMinutes: 50, tzOffsetMinutes: 0 });
+    const s = plan.days[0].sessions.filter((x) => x.taskId === 'soon');
+    expect(s.length).toBe(1);
+    expect(s[0].minutes).toBe(20);
+  });
 });
