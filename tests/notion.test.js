@@ -133,6 +133,14 @@ describe('notion service (mocked official client)', () => {
     expect(arg.parent).toEqual({ page_id: 'student-os' });
     expect(arg.properties.title.title[0].text.content).toMatch(/Study Plan — 2026-03-10/);
   });
+  it('dates the saved plan in the local time zone', async () => {
+    const client = fakeClient();
+    const plan = { generatedAt: '2026-03-10T20:00:00Z', settings: { tzOffsetMinutes: -360 }, summary: { headline: 'Go' }, recommendations: [], warnings: [], days: [] };
+    await createNotionService({ token: 'x', propertyOverrides: {} }, { client }).savePlan(plan);
+    const arg = client.pages.create.mock.calls[0][0];
+    expect(arg.properties.title.title[0].text.content).toMatch(/Study Plan — 2026-03-11$/);
+    expect(JSON.stringify(arg.children)).toContain('2026-03-11 02:00 (UTC+6)');
+  });
   it('saves plans under a shared standalone page when the database is top-level', async () => {
     const client = fakeClient();
     client.databases.retrieve.mockResolvedValue({ id: 'db-1', parent: { type: 'workspace', workspace: true } });
