@@ -18,7 +18,7 @@ const FIELD_LABELS = {
 const STEPS = [
   ['Create an internal integration', 'Go to notion.so/profile/integrations → “New integration”. Give it Read content, Update content and Insert content capabilities, then copy the secret.'],
   ['Share your Student OS with it', 'Open your Student OS page (or its Assignments/Tasks database) → ••• → Connections → add your integration. Child pages and databases inherit access.'],
-  ['Add credentials to the server', 'Copy .env.example to .env and set NOTION_TOKEN. Optionally set NOTION_TASKS_DATABASE_ID (otherwise it is auto-detected) and NOTION_PLANS_PARENT_PAGE_ID.'],
+  ['Add credentials to the server', 'Copy .env.example to .env and set NOTION_TOKEN. Optionally set NOTION_ASSIGNMENTS_DATABASE_ID (otherwise it is auto-detected) and NOTION_PLANS_PARENT_PAGE_ID.'],
   ['Restart & switch to Notion', 'Restart `npm run dev`, then pick “Notion” in the top bar. Your real tasks and deadlines load instantly.'],
 ];
 
@@ -158,7 +158,7 @@ export default function NotionPage() {
 
           {configured && dbs && (
             <Card className="animate-fade-up">
-              <CardHeader title="Databases shared with the integration" subtitle="Copy an ID into NOTION_TASKS_DATABASE_ID to pick a specific one" icon={Database} />
+              <CardHeader title="Databases shared with the integration" subtitle="Copy an ID into NOTION_ASSIGNMENTS_DATABASE_ID to pick a specific one" icon={Database} />
               <ul className="space-y-1 p-3">
                 {dbs.map((d) => (
                   <li key={d.id} className={clsx('flex items-center justify-between gap-3 rounded-xl px-3 py-2', d.id === conn.database?.id && 'bg-emerald-500/[0.06] ring-1 ring-emerald-500/20')}>

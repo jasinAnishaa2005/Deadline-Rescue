@@ -133,6 +133,16 @@ describe('notion service (mocked official client)', () => {
     expect(arg.parent).toEqual({ page_id: 'student-os' });
     expect(arg.properties.title.title[0].text.content).toMatch(/Study Plan — 2026-03-10/);
   });
+  it('saves plans under a shared standalone page when the database is top-level', async () => {
+    const client = fakeClient();
+    client.databases.retrieve.mockResolvedValue({ id: 'db-1', parent: { type: 'workspace', workspace: true } });
+    const plan = { generatedAt: '2026-03-10T09:00:00Z', summary: { headline: 'Go' }, recommendations: [], warnings: [], days: [] };
+    client.search.mockResolvedValue({ results: [{ id: 'row', parent: { type: 'data_source_id' } }, { id: 'sub', parent: { type: 'page_id' } }, { id: 'root', parent: { type: 'workspace' } }] });
+    await createNotionService({ token: 'x', tasksDatabaseId: 'ds-1', propertyOverrides: {} }, { client }).savePlan(plan);
+    expect(client.pages.create.mock.calls[0][0].parent).toEqual({ page_id: 'root' });
+    client.search.mockResolvedValue({ results: [{ id: 'row', parent: { type: 'data_source_id' } }] });
+    await expect(createNotionService({ token: 'x', tasksDatabaseId: 'ds-1', propertyOverrides: {} }, { client }).savePlan(plan)).rejects.toMatchObject({ code: 'no_parent' });
+  });
   it('maps Notion API errors to friendly messages', async () => {
     const client = fakeClient();
     client.search.mockRejectedValue(Object.assign(new Error('API token is invalid.'), { code: 'unauthorized' }));

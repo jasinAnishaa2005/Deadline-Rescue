@@ -16,7 +16,7 @@ export function loadConfig(env = process.env) {
     isProduction: env.NODE_ENV === 'production',
     notion: {
       token: clean(env.NOTION_TOKEN),
-      tasksDatabaseId: parseNotionId(env.NOTION_TASKS_DATABASE_ID),
+      tasksDatabaseId: parseNotionId(env.NOTION_ASSIGNMENTS_DATABASE_ID || env.NOTION_TASKS_DATABASE_ID),
       plansParentPageId: parseNotionId(env.NOTION_PLANS_PARENT_PAGE_ID),
       propertyOverrides: {
         title: clean(env.NOTION_PROP_TITLE),

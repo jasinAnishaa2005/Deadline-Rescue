@@ -282,7 +282,7 @@ export function createNotionService(notionConfig, { client } = {}) {
         if (!match) {
           throw new NotionServiceError(
             all.length
-              ? 'Could not auto-detect your assignments database. Set NOTION_TASKS_DATABASE_ID in the server .env file.'
+              ? 'Could not auto-detect your assignments database. Set NOTION_ASSIGNMENTS_DATABASE_ID in the server .env file.'
               : 'No databases are shared with your integration. In Notion, open your Student OS → ••• → Connections → add the integration.',
             404,
             'database_not_found',
@@ -407,8 +407,17 @@ export function createNotionService(notionConfig, { client } = {}) {
         throw toServiceError(err);
       }
     }
+    // Top-level databases have no parent page: fall back to a standalone page shared with the integration.
+    try {
+      const res = await notion.search({ filter: { property: 'object', value: 'page' }, page_size: 50 });
+      const standalone = (res.results || []).filter((p) => !p.archived && !p.in_trash && ['workspace', 'page_id'].includes(p.parent?.type));
+      const page = standalone.find((p) => p.parent.type === 'workspace') || standalone[0];
+      if (page) return page.id;
+    } catch (err) {
+      throw toServiceError(err);
+    }
     throw new NotionServiceError(
-      'Could not determine where to save the plan. Set NOTION_PLANS_PARENT_PAGE_ID to a page shared with your integration.',
+      'Could not find a Notion page to save the plan under. Share a page (not just the database) with your integration via ••• → Connections, or set NOTION_PLANS_PARENT_PAGE_ID.',
       422,
       'no_parent',
     );
