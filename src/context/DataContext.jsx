@@ -95,7 +95,6 @@ export function DataProvider({ children }) {
 
   const refresh = useCallback(() => {
     if (source === 'notion') return loadNotion();
-    if (source === 'local') setLocalTasks(loadTasks());
     setTick((t) => t + 1);
   }, [source, loadNotion]);
 
