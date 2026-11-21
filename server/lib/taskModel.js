@@ -46,7 +46,7 @@ export function effortFor(task) {
 }
 
 export const DONE_PATTERN = /done|complete|finished|submitted|turned in|graded|closed/i;
-const NOT_DONE_PATTERN = /\bnot\b|\bun|\bin-?complete|\bpending|\bto-?do/i;
+const NOT_DONE_PATTERN = /\bnot\b|\bun(?:done|finished|submitted|completed?|graded)\b|\bin-?complete|\bpending|\bto-?do/i;
 
 /** True for status labels like "Done" or "Submitted", false for "Not done", "Incomplete", "Unsubmitted". */
 export const isDoneLabel = (label) => typeof label === 'string' && DONE_PATTERN.test(label) && !NOT_DONE_PATTERN.test(label);
