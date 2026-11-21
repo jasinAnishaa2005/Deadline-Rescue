@@ -111,3 +111,31 @@ describe('planner session length', () => {
     for (const s of sessions) expect(s.minutes).toBeLessThanOrEqual(25);
   });
 });
+
+describe('planner limits (review fixes)', () => {
+  it('keeps breakdown totals equal to the estimate', () => {
+    for (const h of [1.25, 1.5, 2, 3.3, 9]) {
+      const steps = breakDownTask(task({ type: 'exam', estimatedHours: h }));
+      const total = steps.reduce((s, x) => s + x.minutes, 0);
+      expect(Math.abs(total - Math.round((h * 60) / 5) * 5)).toBeLessThanOrEqual(5);
+    }
+  });
+  it('never schedules past the daily end hour or a task deadline', () => {
+    const analyzed = analyzeTasks(createDemoTasks(NOW), NOW);
+    const plan = generatePlan(analyzed, { now: NOW, days: 7, hoursPerDay: 12, startHour: 18, endHour: 22, sessionMinutes: 50, breakMinutes: 15 });
+    const byId = new Map(analyzed.map((t) => [t.id, t]));
+    for (const d of plan.days) {
+      for (const s of d.sessions) {
+        const [h, m] = s.end.split(':').map(Number);
+        expect(h * 60 + m).toBeLessThanOrEqual(22 * 60);
+        const t = byId.get(s.taskId);
+        if (!t.isOverdue && t.dueDate) expect(new Date(s.startsAt).getTime() + s.minutes * 60000).toBeLessThanOrEqual(new Date(t.dueDate).getTime());
+      }
+    }
+  });
+  it('fills a short leftover slot with a shorter task instead of stopping', () => {
+    const analyzed = analyzeTasks([task({ id: 'big1', estimatedHours: 50 / 60, dueDate: inHours(24 * 2) }), task({ id: 'big2', estimatedHours: 50 / 60, dueDate: inHours(24 * 3) }), task({ id: 'small', estimatedHours: 0.33, dueDate: inHours(24 * 6) })], NOW);
+    const plan = generatePlan(analyzed, { now: NOW, days: 1, hoursPerDay: 70 / 60, startHour: 12, sessionMinutes: 50, breakMinutes: 0 });
+    expect(plan.days[0].sessions.some((s) => s.taskId === 'small')).toBe(true);
+  });
+});

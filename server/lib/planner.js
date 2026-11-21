@@ -67,6 +67,15 @@ export function breakDownTask(task, customSteps) {
     template = customSteps.map((st) => [String(st.title).slice(0, 120), (Number(st.fraction) > 0 ? Number(st.fraction) : 1) / sum]);
   }
   const steps = template.map(([title, fraction]) => ({ title, minutes: Math.max(15, roundTo5(total * fraction)) }));
+  // The 15-minute floor and rounding can drift from the estimate; settle the difference on the largest step.
+  let diff = total - steps.reduce((sum, st) => sum + st.minutes, 0);
+  while (diff !== 0) {
+    const largest = steps.reduce((a, b) => (b.minutes > a.minutes ? b : a));
+    const next = Math.max(15, largest.minutes + diff);
+    if (next === largest.minutes) break;
+    diff -= next - largest.minutes;
+    largest.minutes = next;
+  }
   return steps;
 }
 
@@ -138,14 +147,17 @@ export function generatePlan(analyzedTasks, options = {}) {
     const perTaskToday = new Map();
     const sessions = [];
 
-    while (capacity >= 15) {
+    while (true) {
+      // Breaks also consume the study window, so re-check what is left before the cutoff.
+      capacity = Math.min(capacity, endHour * 60 - clock);
+      if (capacity < 15) break;
       const dayStartAbs = midnightAbs + clock * MIN;
       const candidates = [];
       for (const [id, q] of queues) {
         if (!q.length) continue;
         const t = byId.get(id);
         // Work on a task whose deadline passes during the plan is pointless (e.g. studying after the exam).
-        if (!t.isOverdue && t.dueDate && new Date(t.dueDate).getTime() <= dayStartAbs + 15 * MIN) {
+        if (!t.isOverdue && t.dueDate && new Date(t.dueDate).getTime() < dayStartAbs + 15 * MIN) {
           atRisk.add(id);
           continue;
         }
@@ -162,18 +174,19 @@ export function generatePlan(analyzedTasks, options = {}) {
         if (!t.dueDate) return 1e9;
         return (new Date(t.dueDate).getTime() - dayStartAbs) / HOUR - t.urgencyScore / 100;
       };
-      pool.sort((a, b) => deadlineKey(a) - deadlineKey(b));
-      const task = pool[0];
+      const byDeadline = (a, b) => deadlineKey(a) - deadlineKey(b);
+      // Minutes this task may use now: remaining capacity, and never past its deadline.
+      const limitFor = (t) =>
+        !t.isOverdue && t.dueDate ? Math.min(capacity, Math.floor((new Date(t.dueDate).getTime() - dayStartAbs) / MIN)) : capacity;
+      // A chunk fits if it fits whole, or at least 25 minutes are free to split it.
+      const fits = (t) => limitFor(t) >= Math.min(queues.get(t.id)[0].minutes, 25);
+      const task = pool.sort(byDeadline).find(fits) || candidates.sort(byDeadline).find(fits);
+      if (!task) break;
       const queue = queues.get(task.id);
       const chunk = queue[0];
-      let minutes = chunk.minutes;
-      if (minutes > capacity) {
-        if (capacity < 25 && chunk.minutes - capacity >= 15) break;
-        minutes = capacity;
-        chunk.minutes -= minutes;
-      } else {
-        queue.shift();
-      }
+      const minutes = Math.min(chunk.minutes, limitFor(task));
+      if (minutes < chunk.minutes) chunk.minutes -= minutes;
+      else queue.shift();
       const startAbs = midnightAbs + clock * MIN;
       const endAbs = startAbs + minutes * MIN;
       const late = Boolean(!task.isOverdue && task.dueDate && endAbs > new Date(task.dueDate).getTime());
