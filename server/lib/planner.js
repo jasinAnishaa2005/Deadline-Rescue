@@ -77,8 +77,8 @@ function chunkSteps(task, steps, sessionMinutes) {
     let part = 1;
     const parts = Math.ceil(step.minutes / sessionMinutes);
     while (left > 0) {
-      let minutes = Math.min(sessionMinutes, left);
-      if (left - minutes > 0 && left - minutes < 15) minutes = left;
+      // Split evenly so no session exceeds sessionMinutes and none is a tiny leftover.
+      const minutes = Math.ceil(left / (parts - part + 1));
       chunks.push({
         taskId: task.id,
         step: parts > 1 ? `${step.title} (${part}/${parts})` : step.title,

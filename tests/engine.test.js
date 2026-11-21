@@ -72,7 +72,7 @@ describe('planner', () => {
     expect(plan.days).toHaveLength(5);
     for (const d of plan.days) {
       expect(d.totalMinutes).toBeLessThanOrEqual(180);
-      for (const s of d.sessions) expect(s.minutes).toBeLessThanOrEqual(45 + 15);
+      for (const s of d.sessions) expect(s.minutes).toBeLessThanOrEqual(45);
     }
     expect(plan.recommendations).toHaveLength(3);
     expect(plan.summary.totalSessions).toBeGreaterThan(0);
@@ -99,5 +99,15 @@ describe('demo data', () => {
     expect(analyzed.some((t) => t.isOverdue)).toBe(true);
     expect(analyzed.some((t) => t.completed)).toBe(true);
     expect(analyzed.some((t) => t.level === 'critical')).toBe(true);
+  });
+});
+
+describe('planner session length', () => {
+  it('never exceeds the chosen session length (e.g. 60m task at 25m sessions)', () => {
+    const analyzed = analyzeTasks([task({ id: 'x', estimatedHours: 1, dueDate: inHours(24 * 5) }), task({ id: 'y', type: 'exam', estimatedHours: 7, dueDate: inHours(24 * 6) })], NOW);
+    const plan = generatePlan(analyzed, { now: NOW, days: 3, hoursPerDay: 4, startHour: 12, sessionMinutes: 25 });
+    const sessions = plan.days.flatMap((d) => d.sessions);
+    expect(sessions.length).toBeGreaterThan(0);
+    for (const s of sessions) expect(s.minutes).toBeLessThanOrEqual(25);
   });
 });
